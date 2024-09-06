@@ -14,6 +14,8 @@ class Admin
         add_action( 'init', array( $this, 'create_event_post' ), 1 );
         add_action( 'add_meta_boxes', array( $this, 'event_add_meta_box' ) );
         add_action( 'save_post', array( $this, 'event_save_meta_box_data' ) );
+        add_action( 'rest_api_init', array( $this, 'add_custom_fields_to_rest_api' ) );
+        add_filter( 'rest_mc-event_query', array( $this, 'filter_events_by_event_start' ), 10, 2 );
     }
 
     /**
@@ -140,5 +142,66 @@ class Admin
         if (isset($_POST['event_details'])) {
             update_post_meta($post_id, '_event_details', sanitize_textarea_field($_POST['event_details']));
         }
+    }
+
+    /**
+     * REST APIにカスタムフィールドを追加
+     *
+     * @return void
+     */
+    public function add_custom_fields_to_rest_api() {
+        // 'mc-event' カスタム投稿タイプにカスタムフィールドを追加
+        register_rest_field( 'mc-event',
+            'event_meta',
+            array(
+                'get_callback'    => array( $this, 'get_event_meta_for_api' ),
+                'update_callback' => null,
+                'schema'          => null,
+            )
+        );
+    }
+
+    /**
+     * REST API用のカスタムフィールドデータを取得
+     *
+     * @param array $object Details of current post.
+     * @return array Event meta data
+     */
+    public function get_event_meta_for_api( $object ) {
+        $post_id = $object['id'];
+        $event_start   = get_post_meta( $post_id, '_event_start', true );
+        $event_end     = get_post_meta( $post_id, '_event_end', true );
+        $event_details = get_post_meta( $post_id, '_event_details', true );
+
+        return array(
+            'event_start'   => $event_start,
+            'event_end'     => $event_end,
+            'event_details' => $event_details,
+        );
+    }
+
+    /**
+     * イベントの開始日時でイベントをフィルタリング
+     */
+    public function filter_events_by_event_start( $args, $request ) {
+        if ( isset( $request['event_start_month'] ) ) {
+            $year_month = sanitize_text_field( $request['event_start_month'] );
+
+            // 8月の開始日から終了日までを指定
+            $start_date = $year_month . '-01 00:00:00';
+            $end_date = $year_month . '-31 23:59:59';
+
+            // WP_Query に meta_query を追加
+            $args['meta_query'] = array(
+                array(
+                    'key'     => '_event_start',
+                    'value'   => array( $start_date, $end_date ),
+                    'compare' => 'BETWEEN',
+                    'type'    => 'DATETIME',
+                ),
+            );
+        }
+
+        return $args;
     }
 }
