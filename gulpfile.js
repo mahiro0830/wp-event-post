@@ -2,7 +2,6 @@
 // node_modulesに格納されている各プラグインを読み込む
 // ---------------------------------------------------------------------------------- */
 const gulp = require('gulp');
-const browsersync = require("browser-sync").create();
 const sass = require('gulp-dart-sass');
 const plumber = require('gulp-plumber');
 const notify = require('gulp-notify');
@@ -20,19 +19,6 @@ const AUTOPREFIXER_BROWSERS = [
   'iOS >= 7',
   'Android >= 4.4',
 ];
-
-gulp.task('build-server', function (done) {
-  browsersync.init({
-    server: {
-      baseDir: './public/'
-    },
-  });
-  done();
-});
-gulp.task('browser-reload', function (done) {
-  browsersync.reload();
-  done();
-});
 
 gulp.task('buildScss', function (done) {
   var processors = [
@@ -62,27 +48,22 @@ gulp.task('buildWebpack', function (done) {
 gulp.task('scssFilesSeries',
   gulp.series(
     'buildScss',
-    'browser-reload'
   )
 );
 
 gulp.task('jsFilesSeries',
   gulp.series(
     'buildWebpack',
-    'browser-reload'
   )
 );
 
 gulp.task('watchFiles', function (done) {
   gulp.watch("**/*.{html,php}", gulp.series('scssFilesSeries')); // PHPファイルの変更を監視し、SCSSのコンパイルを実行
-  gulp.watch("**/*.{html,php}", gulp.task('browser-reload'));
-  gulp.watch("images/**/*.{jpg,jpeg,png,svg,gif}", gulp.task('browser-reload'));
-
   gulp.watch("src/scss/**/*.scss", gulp.series('scssFilesSeries'));
   gulp.watch("src/ts/**/*.ts", gulp.series('jsFilesSeries'));
   done();
 });
 
-gulp.task('default', gulp.series('build-server', 'watchFiles', function (done) {
+gulp.task('default', gulp.series('watchFiles', function (done) {
   done();
 }));

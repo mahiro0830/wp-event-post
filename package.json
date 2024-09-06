@@ -39,6 +39,5 @@
     "webpack-stream": "^7.0.0"
   },
   "dependencies": {
-    "browser-sync": "^2.27.10"
   }
 }
