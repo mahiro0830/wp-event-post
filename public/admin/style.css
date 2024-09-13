@@ -1,0 +1,44 @@
+.taxonomy-mc-event-category .form-field.term-slug-wrap {
+  position: relative;
+}
+
+.taxonomy-mc-event-category #name-description {
+  display: none !important;
+}
+
+.taxonomy-mc-event-category #slug-description {
+  display: none !important;
+}
+
+.taxonomy-mc-event-category .form-field.term-parent-wrap:has(#parent) {
+  display: none !important;
+}
+
+.taxonomy-mc-event-category .form-field.term-description-wrap {
+  display: none !important;
+}
+
+.taxonomy-mc-event-category .form-field.term-slug-wrap:has(label[for="tag-slug"])::after {
+  content: "#";
+  position: absolute;
+  bottom: 0;
+  bottom: 5px;
+  left: 10px;
+}
+
+.taxonomy-mc-event-category .form-field.term-slug-wrap:has(label[for="tag-slug"]) input {
+  padding-left: 20px;
+}
+
+.taxonomy-mc-event-category label[for="tag-slug"] {
+  /* テキストを非表示 */
+  position: relative;
+}
+
+.taxonomy-mc-event-category label[for="tag-slug"]::after {
+  content: "カラーコード";
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: #f1f1f1;
+}
