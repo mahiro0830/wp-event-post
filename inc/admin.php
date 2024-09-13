@@ -58,6 +58,38 @@ class Admin
                 ),
             )
         );
+
+        // カスタムタクソノミー「イベントカテゴリー」を追加
+        register_taxonomy(
+            'mc-event-category',
+            'mc-event',
+            array(
+                'label' => 'イベントカテゴリー',
+                'public' => true,
+                'show_ui' => true,
+                'show_in_rest' => true,
+                'hierarchical' => true,
+                'publicly_queryable' => false,
+                'capabilities' => array(
+                    'assign_terms' => 'edit_posts',
+                    'edit_terms' => 'publish_posts',
+                ),
+                'labels' => array(
+                    'name' => 'イベントカテゴリー',
+                    'singular_name' => 'イベントカテゴリー',
+                    'search_items' => 'イベントカテゴリーを検索',
+                    'popular_items' => 'よく使われているイベントカテゴリー',
+                    'all_items' => 'すべてのイベントカテゴリー',
+                    'edit_item' => 'イベントカテゴリーを編集',
+                    'update_item' => 'イベントカテゴリーを更新',
+                    'add_new_item' => '新しいイベントカテゴリーを追加',
+                    'new_item_name' => '新しいイベントカテゴリー',
+                    'separate_items_with_commas' => 'カンマで区切ってイベントカテゴリーを追加',
+                    'add_or_remove_items' => 'イベントカテゴリーを追加または削除',
+                    'choose_from_most_used' => 'よく使われているイベントカテゴリーから選択',
+                ),
+            )
+        );
     }
 
     /**
@@ -83,12 +115,43 @@ class Admin
      * @return void
      */
     public function event_meta_box_html($post) {
+        // メディアアップローダーを使用するために必要なスクリプトを読み込む
+        // 管理画面用のスクリプトとスタイルを読み込む
+        function enqueue_admin_scripts($hook) {
+            // 投稿編集ページでのみスクリプトを読み込む
+            if ('post.php' != $hook) {
+                return;
+            }
+
+            // メディアライブラリのスクリプト
+            wp_enqueue_media();
+
+            // カスタムJavaScriptの読み込み
+            wp_enqueue_script(
+                'custom-media-uploader',
+                plugin_dir_url(__FILE__) . 'js/custom-media-uploader.js',
+                array('jquery'),
+                null,
+                true
+            );
+        }
+        add_action('admin_enqueue_scripts', 'enqueue_admin_scripts');
+        wp_enqueue_media();
+
         // カスタムフィールドのデータを取得
+        $data['event_icon']    = get_post_meta($post->ID, '_event_icon', true);
         $data['event_start']   = get_post_meta($post->ID, '_event_start', true);
         $data['event_end']     = get_post_meta($post->ID, '_event_end', true);
         $data['event_details'] = get_post_meta($post->ID, '_event_details', true);
 
         ?>
+        <label for="event_icon">アイコンをアップロード:</label>
+        <br />
+        <img id="event_icon_preview" src="<?php echo esc_url($data['event_icon']); ?>" style="max-width: 100px; margin-top: 6px;" />
+        <br />
+        <input type="hidden" id="event_icon" name="event_icon" value="<?php echo esc_attr($data['event_icon']); ?>" />
+        <button id="upload_event_icon_button" type="button" class="button">アイコンを選択</button>
+        <hr />
         <label for="event_start">開始日時:</label>
         <input
             type="datetime-local"
@@ -110,6 +173,41 @@ class Admin
             id="event_details"
             style="margin-top: 6px; width: 100%; height: 250px;"
             name="event_details"><?php echo esc_textarea($data['event_details']); ?></textarea>
+
+        <script type="text/javascript">
+            jQuery(document).ready(function($) {
+                var mediaUploader;
+
+                $('#upload_event_icon_button').on('click', function(e) {
+                    e.preventDefault();
+
+                    // すでにメディアアップローダーが開いている場合は再利用
+                    if (mediaUploader) {
+                        mediaUploader.open();
+                        return;
+                    }
+
+                    // 新しいメディアアップローダーを作成
+                    mediaUploader = wp.media.frames.file_frame = wp.media({
+                        title: 'アイコンを選択',
+                        button: {
+                            text: 'この画像を使用'
+                        },
+                        multiple: false // 単一画像のみ選択可能
+                    });
+
+                    // 画像が選択されたときの処理
+                    mediaUploader.on('select', function() {
+                        var attachment = mediaUploader.state().get('selection').first().toJSON();
+                        $('#event_icon').val(attachment.url);
+                        $('#event_icon_preview').attr('src', attachment.url);
+                    });
+
+                    // メディアライブラリを開く
+                    mediaUploader.open();
+                });
+            });
+        </script>
         <?php
     }
 
@@ -131,6 +229,14 @@ class Admin
         }
 
         // フィールドデータの保存
+        if (array_key_exists('event_icon', $_POST)) {
+            update_post_meta(
+                $post_id,
+                '_event_icon',
+                $_POST['event_icon']
+            );
+        }
+
         if (isset($_POST['event_start'])) {
             update_post_meta($post_id, '_event_start', sanitize_text_field($_POST['event_start']));
         }
@@ -169,11 +275,13 @@ class Admin
      */
     public function get_event_meta_for_api( $object ) {
         $post_id = $object['id'];
+        $event_icon    = get_post_meta( $post_id, '_event_icon', true );
         $event_start   = get_post_meta( $post_id, '_event_start', true );
         $event_end     = get_post_meta( $post_id, '_event_end', true );
         $event_details = get_post_meta( $post_id, '_event_details', true );
 
         return array(
+            'event_icon'    => $event_icon,
             'event_start'   => $event_start,
             'event_end'     => $event_end,
             'event_details' => $event_details,

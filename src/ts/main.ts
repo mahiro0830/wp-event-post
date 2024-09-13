@@ -103,4 +103,79 @@ document.addEventListener('DOMContentLoaded', (): void => {
     calendarDrawer[2].drawCalendar(next2Year, next2Month);
     calendarDrawer[1].drawCalendar(nextYear, nextMonth);
   });
+
+  /**
+   * モーダルを開く
+   */
+  const calendarModal: HTMLElement | null = document.getElementById('mc-calendar-modal') || null;
+  const calendarModalClose: HTMLElement | null = document.getElementById('mc-calendar-modal-close') || null;
+  const calendarLinks: NodeListOf<HTMLElement> | [] = document.querySelectorAll('.js-calendar-link') || [];
+
+  if (calendarModal || calendarModalClose || calendarLinks.length) {
+    // カレンダーリンクをクリックでモーダルを開く
+    calendarLinks.forEach((link: HTMLElement | null) => {
+      link?.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+
+        // モダール内のHTMLを生成
+        const eventItems: NodeListOf<HTMLElement> | [] = link?.querySelectorAll('.mc-event-item') || [];
+        const eventIcons: NodeListOf<HTMLElement> | [] = link?.querySelectorAll('.mc-event-icon') || [];
+        if (eventItems.length && eventIcons.length) {
+          const modalContents: HTMLElement | null = calendarModal?.querySelector('#mc-calendar-modal-contents') || null;
+          if (modalContents) {
+            modalContents.innerHTML = '';
+
+            eventItems.forEach((item: HTMLElement | null, index) => {
+              const date: string = item?.dataset.date || '';
+              const title: string = item?.textContent || '';
+              const detail: string = item?.dataset.detail || '';
+              const icon: HTMLElement | null = eventIcons[index].cloneNode(true) as HTMLElement;
+              const iconColor: string | null = icon?.dataset.color || null;
+              const iconColorAccent: string | null = icon?.dataset.colorAccent || null;
+
+              const eventItem = document.createElement('li');
+              eventItem.classList.add('p-calendar-modal__item');
+              const eventItemBg = document.createElement('div');
+              eventItemBg.classList.add('p-calendar-modal__bg');
+              if (iconColor) eventItemBg.style.backgroundColor = iconColor;
+              eventItem.appendChild(eventItemBg);
+              const eventItemIcon = document.createElement('div');
+              eventItemIcon.classList.add('p-calendar-modal__icon');
+              if (iconColor) eventItemIcon.style.borderColor = iconColor;
+              eventItem.appendChild(eventItemIcon);
+              eventItemIcon.appendChild(icon);
+              const eventItemContents = document.createElement('div');
+              eventItemContents.classList.add('p-calendar-modal__contents');
+              eventItem.appendChild(eventItemContents);
+              const eventItemDate = document.createElement('div');
+              eventItemDate.classList.add('p-calendar-modal__date');
+              eventItemDate.style.color = iconColorAccent || '';
+              eventItemDate.textContent = date;
+              eventItemContents.appendChild(eventItemDate);
+              const eventItemTitle = document.createElement('div');
+              eventItemTitle.classList.add('p-calendar-modal__title');
+              eventItemTitle.style.color = iconColorAccent || '';
+              eventItemTitle.textContent = title;
+              eventItemContents.appendChild(eventItemTitle);
+              if (detail !== '') {
+                const eventItemDetail = document.createElement('div');
+                eventItemDetail.classList.add('p-calendar-modal__text');
+                eventItemDetail.textContent = detail;
+                eventItemContents.appendChild(eventItemDetail);
+              }
+              modalContents.appendChild(eventItem);
+            });
+          }
+        }
+
+        calendarModal?.classList.add('is-active');
+      });
+    });
+
+    // モーダルを閉じる
+    calendarModalClose?.addEventListener('click', (e: Event) => {
+      e.preventDefault();
+      calendarModal?.classList.remove('is-active');
+    });
+  }
 });
